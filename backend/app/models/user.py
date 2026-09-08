@@ -58,7 +58,7 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
-    agent_actions = relationship(
+    agent_action_logs = relationship(
         "AgentActionLog",
         back_populates="user",
         cascade="all, delete-orphan",
