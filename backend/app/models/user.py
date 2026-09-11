@@ -19,7 +19,7 @@ class User(Base):
 
     hashed_password: Mapped[str] = mapped_column(
         String(255),
-        nullable=True,
+        nullable=False,
     )
 
     first_name: Mapped[str | None] = mapped_column(

@@ -79,7 +79,7 @@ async def get_savings_goal(
     if goal is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            details="Savings goal not found",
+            detail="Savings goal not found",
         )
     return goal
 

@@ -1,5 +1,3 @@
-from wsgiref import headers
-
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
@@ -21,7 +19,7 @@ async def get_current_user(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={
-            "WWW-Authentication": "Bearer",
+            "WWW-Authenticate": "Bearer",
         },
     )
 

@@ -15,7 +15,7 @@ class SavingsGoalUpdate(BaseModel):
 
     current_amount: Decimal | None = Field(default=None, ge=0,)
 
-    tarhet_date: date | None = None
+    target_date: date | None = None
 
 class SavingsGoalResponse(BaseModel):
     id: int

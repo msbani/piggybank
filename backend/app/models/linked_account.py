@@ -63,6 +63,12 @@ class LinkedAccount(Base):
     plaid_item_id: Mapped[str | None] = mapped_column(
         String(255),
         nullable=True,
+        index=True,
+    )
+
+    plaid_account_id: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
         unique=True,
         index=True,
     )

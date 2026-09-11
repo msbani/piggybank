@@ -1,5 +1,4 @@
-from os import access
-from re import A
+from datetime import datetime
 
 from fastapi import APIRouter, Depends
 
@@ -26,6 +25,7 @@ from plaid.model.accounts_get_request import AccountsGetRequest
 from app.core.encryption import encrypt_value
 from app.db.database import get_db
 from app.models.linked_account import LinkedAccount
+from app.models.transaction import Transaction
 from app.schemas.plaid import PublicTokenExchangeRequest
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -93,6 +93,8 @@ async def exchange_public_token(
 
     accounts = accounts_response.accounts
 
+    accounts_by_plaid_id: dict[str, LinkedAccount] = {}
+
     for account in accounts:
         linked_account = LinkedAccount(
             user_id=current_user.id,
@@ -101,14 +103,62 @@ async def exchange_public_token(
             account_type=str(account.type),
             last_four=account.mask,
             plaid_item_id=item_id,
+            plaid_account_id=account.account_id,
             access_token_encrypted=encrypted_access_token,
         )
 
         db.add(linked_account)
-    await db.commit()
+        accounts_by_plaid_id[account.account_id] = linked_account
 
-    response = client.transactions_sync(
+    # Flush (without committing) so the linked accounts get real primary
+    # keys we can use as Transaction.account_id below.
+    await db.flush()
+
+    sync_response = client.transactions_sync(
         TransactionsSyncRequest(
             access_token=access_token,
         )
     )
+
+    transactions_synced = 0
+
+    for added_transaction in sync_response.added:
+        linked_account = accounts_by_plaid_id.get(
+            added_transaction.account_id
+        )
+
+        if linked_account is None:
+            continue
+
+        transaction = Transaction(
+            account_id=linked_account.id,
+            amount=added_transaction.amount,
+            transaction_type=(
+                "debit" if added_transaction.amount > 0 else "credit"
+            ),
+            description=added_transaction.name,
+            merchant=(
+                added_transaction.merchant_name
+                or added_transaction.name
+            ),
+            category=(
+                ", ".join(added_transaction.category)
+                if added_transaction.category
+                else None
+            ),
+            transaction_date=datetime.combine(
+                added_transaction.date,
+                datetime.min.time(),
+            ),
+            plaid_transaction_id=added_transaction.transaction_id,
+        )
+
+        db.add(transaction)
+        transactions_synced += 1
+
+    await db.commit()
+
+    return {
+        "accounts_synced": len(accounts),
+        "transactions_synced": transactions_synced,
+    }
