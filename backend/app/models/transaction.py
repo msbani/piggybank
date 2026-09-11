@@ -52,6 +52,13 @@ class Transaction(Base):
         nullable=False,
     )
 
+    plaid_transaction_id: Mapped[ str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
+
     account = relationship(
         "LinkedAccount",
         back_populates="transactions",
